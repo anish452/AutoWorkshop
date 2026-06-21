@@ -1,0 +1,633 @@
+{
+  "info": {
+    "name": "AutoRepairAgent API",
+    "description": "Complete API collection for AutoRepairAgent - Vehicle Repair Center Backend with AI-powered job classification",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "advisorToken", "value": "" },
+    { "key": "mechanicalToken", "value": "" },
+    { "key": "customerToken", "value": "" },
+    { "key": "jobId", "value": "" },
+    { "key": "customerId", "value": "00000000-0000-0000-0000-000000000001" },
+    { "key": "vehicleId", "value": "" },
+    { "key": "userId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "GET Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"AutoRepairAgent API is running\",\n  \"timestamp\": \"2026-06-14T00:00:00.000Z\",\n  \"environment\": \"development\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "POST Login - Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('token', json.data.token);",
+                  "  pm.collectionVariables.set('adminToken', json.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@autorepair.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"user\": {\n      \"id\": \"uuid\",\n      \"email\": \"admin@autorepair.com\",\n      \"firstName\": \"System\",\n      \"lastName\": \"Admin\",\n      \"role\": { \"name\": \"ADMIN\" }\n    },\n    \"role\": \"ADMIN\"\n  }\n}"
+            },
+            {
+              "name": "Error - Invalid Credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid email or password\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Login - Job Advisor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('advisorToken', pm.response.json().data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"advisor@autorepair.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Login - Mechanical User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('mechanicalToken', pm.response.json().data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mechanical@autorepair.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Login - Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('customerToken', pm.response.json().data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@autorepair.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin - User Management",
+      "item": [
+        {
+          "name": "POST Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@autorepair.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\",\n  \"phone\": \"+61400000999\",\n  \"roleName\": \"MECHANICAL\",\n  \"departmentId\": null\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"User created\",\n  \"data\": { \"id\": \"uuid\", \"email\": \"newuser@autorepair.com\" }\n}"
+            },
+            {
+              "name": "Error - Forbidden",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Insufficient permissions\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET All Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/users"
+          },
+          "response": []
+        },
+        {
+          "name": "GET User By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"phone\": \"+61400000888\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH Activate User",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/activate"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH Deactivate User",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/deactivate"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Create Department",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Custom Department\",\n  \"code\": \"GENERAL_INSPECTION\",\n  \"description\": \"Custom inspection department\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/departments"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Departments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/departments"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "POST Create Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('customerId', pm.response.json().data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{advisorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"James\",\n  \"lastName\": \"Wilson\",\n  \"phone\": \"+61400000333\",\n  \"email\": \"james.wilson@email.com\",\n  \"address\": \"789 Pine Road, Brisbane QLD 4000\"\n}"
+            },
+            "url": "{{baseUrl}}/api/customers"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Customer created\",\n  \"data\": {\n    \"id\": \"uuid\",\n    \"firstName\": \"James\",\n    \"lastName\": \"Wilson\",\n    \"phone\": \"+61400000333\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET All Customers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{advisorToken}}" }],
+            "url": "{{baseUrl}}/api/customers"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Customer By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{advisorToken}}" }],
+            "url": "{{baseUrl}}/api/customers/{{customerId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Update Customer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{advisorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+61400000444\"\n}"
+            },
+            "url": "{{baseUrl}}/api/customers/{{customerId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Customer",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{advisorToken}}" }],
+            "url": "{{baseUrl}}/api/customers/{{customerId}}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vehicles",
+      "item": [
+        {
+          "name": "POST Create Vehicle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('vehicleId', pm.response.json().data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{advisorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registrationNumber\": \"DEF456\",\n  \"chassisNumber\": \"WBADT43452G920000\",\n  \"make\": \"Ford\",\n  \"model\": \"Ranger\",\n  \"year\": 2021,\n  \"customerId\": \"{{customerId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/vehicles"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Vehicle created\",\n  \"data\": { \"registrationNumber\": \"DEF456\", \"make\": \"Ford\" }\n}"
+            },
+            {
+              "name": "Error - Duplicate Registration",
+              "status": "Conflict",
+              "code": 409,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Registration number already exists\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET All Vehicles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{advisorToken}}" }],
+            "url": "{{baseUrl}}/api/vehicles"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Vehicle By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{advisorToken}}" }],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Update Vehicle",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{advisorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year\": 2022\n}"
+            },
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Vehicle",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{advisorToken}}" }],
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "POST Analyze Complaint & Create Jobs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const jobs = pm.response.json().data.jobs;",
+                  "  if (jobs && jobs.length > 0) {",
+                  "    pm.collectionVariables.set('jobId', jobs[0].id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{advisorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleRegistrationNo\": \"ABC123\",\n  \"description\": \"My vehicle engine is making noise and the battery is not charging.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/jobs/analyze"
+          },
+          "response": [
+            {
+              "name": "Success - Multiple Jobs Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"2 job(s) created from AI analysis\",\n  \"data\": {\n    \"analysisLog\": {\n      \"id\": \"uuid\",\n      \"reasoning\": \"Complaint contains mechanical and electrical issues\",\n      \"issues\": [\n        { \"issue\": \"Engine Noise\", \"department\": \"MECHANICAL\", \"confidence\": 0.92, \"explanation\": \"Engine noise is a mechanical issue\" },\n        { \"issue\": \"Battery Charging Problem\", \"department\": \"ELECTRICAL\", \"confidence\": 0.95, \"explanation\": \"Battery charging is electrical\" }\n      ]\n    },\n    \"jobs\": [\n      { \"jobNumber\": \"JOB-2026-00001\", \"issueDescription\": \"Engine Noise\", \"status\": \"ASSIGNED\", \"department\": { \"name\": \"Mechanical\" } },\n      { \"jobNumber\": \"JOB-2026-00002\", \"issueDescription\": \"Battery Charging Problem\", \"status\": \"ASSIGNED\", \"department\": { \"name\": \"Electrical\" } }\n    ]\n  }\n}"
+            },
+            {
+              "name": "Error - Vehicle Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Vehicle with registration UNKNOWN not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Analyze - Multilingual Complaint",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{advisorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleRegistrationNo\": \"ABC123\",\n  \"description\": \"El pedal de freno está duro y los faros no funcionan.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/jobs/analyze"
+          },
+          "response": []
+        },
+        {
+          "name": "GET All Jobs (Job Advisor)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{advisorToken}}" }],
+            "url": "{{baseUrl}}/api/jobs"
+          },
+          "response": []
+        },
+        {
+          "name": "GET All Jobs (Mechanical - Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{mechanicalToken}}" }],
+            "url": "{{baseUrl}}/api/jobs"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Job By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{advisorToken}}" }],
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Start Job",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{mechanicalToken}}" }],
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}/start"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Job started\",\n  \"data\": { \"status\": \"IN_PROGRESS\", \"startedAt\": \"2026-06-14T10:00:00.000Z\" }\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Complete Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{mechanicalToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comments\": \"Engine noise resolved - replaced timing belt and tensioner\"\n}"
+            },
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}/complete"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Job completed\",\n  \"data\": { \"status\": \"COMPLETED\", \"timeTakenMinutes\": 45, \"comments\": [{ \"comment\": \"Engine noise resolved\" }] }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dashboards",
+      "item": [
+        {
+          "name": "GET Admin Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/dashboard/admin"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"totalJobs\": 10,\n    \"pendingJobs\": 2,\n    \"inProgressJobs\": 3,\n    \"completedJobs\": 4,\n    \"cancelledJobs\": 1,\n    \"jobsByDepartment\": [{ \"department\": \"Mechanical\", \"count\": 5 }],\n    \"averageCompletionTimeMinutes\": 60,\n    \"totalCustomers\": 5,\n    \"totalVehicles\": 8,\n    \"totalUsers\": 7\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET Job Advisor Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{advisorToken}}" }],
+            "url": "{{baseUrl}}/api/dashboard/job-advisor"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Department Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{mechanicalToken}}" }],
+            "url": "{{baseUrl}}/api/dashboard/department"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Customer Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/dashboard/customer"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

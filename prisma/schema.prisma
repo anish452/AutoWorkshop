@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMIN
+  JOB_ADVISOR
+  MECHANICAL
+  ELECTRICAL
+  BODY_REPAIR
+  PAINT
+  GENERAL_INSPECTION
+  CUSTOMER
+}
+
+enum DepartmentCode {
+  MECHANICAL
+  ELECTRICAL
+  BODY_REPAIR
+  PAINT
+  GENERAL_INSPECTION
+}
+
+enum JobStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AuditAction {
+  LOGIN
+  JOB_CREATED
+  JOB_ASSIGNED
+  JOB_STARTED
+  JOB_COMPLETED
+  USER_CREATED
+  USER_UPDATED
+  USER_DELETED
+  USER_ACTIVATED
+  USER_DEACTIVATED
+  CUSTOMER_CREATED
+  CUSTOMER_UPDATED
+  CUSTOMER_DELETED
+  VEHICLE_CREATED
+  VEHICLE_UPDATED
+  VEHICLE_DELETED
+  DEPARTMENT_CREATED
+  DEPARTMENT_UPDATED
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        RoleName @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_date")
+  updatedAt   DateTime @updatedAt @map("updated_date")
+  createdBy   String?  @map("created_by")
+  updatedBy   String?  @map("updated_by")
+  users       User[]
+
+  @@map("roles")
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  description String?
+  isActive    Boolean        @default(true) @map("is_active")
+  createdAt   DateTime       @default(now()) @map("created_date")
+  updatedAt   DateTime       @updatedAt @map("updated_date")
+  createdBy   String?        @map("created_by")
+  updatedBy   String?        @map("updated_by")
+  users       User[]
+  jobs        Job[]
+
+  @@map("departments")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  password     String
+  firstName    String      @map("first_name")
+  lastName     String      @map("last_name")
+  phone        String?
+  isActive     Boolean     @default(true) @map("is_active")
+  roleId       String      @map("role_id")
+  departmentId String?     @map("department_id")
+  customerId   String?     @unique @map("customer_id")
+  createdAt    DateTime    @default(now()) @map("created_date")
+  updatedAt    DateTime    @updatedAt @map("updated_date")
+  createdBy    String?     @map("created_by")
+  updatedBy    String?     @map("updated_by")
+  role         Role        @relation(fields: [roleId], references: [id])
+  department   Department? @relation(fields: [departmentId], references: [id])
+  customer     Customer?   @relation(fields: [customerId], references: [id])
+  assignedJobs Job[]       @relation("AssignedJobs")
+  jobAssignments JobAssignment[]
+  jobComments  JobComment[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  firstName String    @map("first_name")
+  lastName  String    @map("last_name")
+  phone     String
+  email     String?
+  address   String?
+  createdAt DateTime  @default(now()) @map("created_date")
+  updatedAt DateTime  @updatedAt @map("updated_date")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+  vehicles  Vehicle[]
+  user      User?
+
+  @@map("customers")
+}
+
+model Vehicle {
+  id                 String   @id @default(uuid())
+  registrationNumber String   @unique @map("registration_number")
+  chassisNumber      String?  @map("chassis_number")
+  make               String
+  model              String
+  year               Int
+  customerId         String   @map("customer_id")
+  createdAt          DateTime @default(now()) @map("created_date")
+  updatedAt          DateTime @updatedAt @map("updated_date")
+  createdBy          String?  @map("created_by")
+  updatedBy          String?  @map("updated_by")
+  customer           Customer @relation(fields: [customerId], references: [id])
+  jobs               Job[]
+
+  @@map("vehicles")
+}
+
+model AIAnalysisLog {
+  id                    String   @id @default(uuid())
+  complaintDescription  String   @map("complaint_description")
+  vehicleRegistrationNo String   @map("vehicle_registration_no")
+  rawResponse           String?  @map("raw_response") @db.Text
+  issues                Json
+  createdAt             DateTime @default(now()) @map("created_date")
+  updatedAt             DateTime @updatedAt @map("updated_date")
+  createdBy             String?  @map("created_by")
+  updatedBy             String?  @map("updated_by")
+  jobs                  Job[]
+
+  @@map("ai_analysis_logs")
+}
+
+model Job {
+  id                   String        @id @default(uuid())
+  jobNumber            String        @unique @map("job_number")
+  vehicleId            String        @map("vehicle_id")
+  complaintDescription String        @map("complaint_description")
+  issueDescription     String        @map("issue_description")
+  departmentId         String        @map("department_id")
+  status               JobStatus     @default(PENDING)
+  confidence           Float?
+  aiExplanation        String?       @map("ai_explanation") @db.Text
+  aiAnalysisLogId      String?       @map("ai_analysis_log_id")
+  assignedUserId       String?       @map("assigned_user_id")
+  startedAt            DateTime?     @map("started_at")
+  completedAt          DateTime?     @map("completed_at")
+  timeTakenMinutes     Int?          @map("time_taken_minutes")
+  createdAt            DateTime      @default(now()) @map("created_date")
+  updatedAt            DateTime      @updatedAt @map("updated_date")
+  createdBy            String?       @map("created_by")
+  updatedBy            String?       @map("updated_by")
+  vehicle              Vehicle       @relation(fields: [vehicleId], references: [id])
+  department           Department    @relation(fields: [departmentId], references: [id])
+  aiAnalysisLog        AIAnalysisLog? @relation(fields: [aiAnalysisLogId], references: [id])
+  assignedUser         User?         @relation("AssignedJobs", fields: [assignedUserId], references: [id])
+  assignments          JobAssignment[]
+  comments             JobComment[]
+
+  @@map("jobs")
+}
+
+model JobAssignment {
+  id         String   @id @default(uuid())
+  jobId      String   @map("job_id")
+  userId     String   @map("user_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  assignedBy String?  @map("assigned_by")
+  createdAt  DateTime @default(now()) @map("created_date")
+  updatedAt  DateTime @updatedAt @map("updated_date")
+  createdBy  String?  @map("created_by")
+  updatedBy  String?  @map("updated_by")
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@map("job_assignments")
+}
+
+model JobComment {
+  id        String   @id @default(uuid())
+  jobId     String   @map("job_id")
+  userId    String   @map("user_id")
+  comment   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_date")
+  updatedAt DateTime @updatedAt @map("updated_date")
+  createdBy String?  @map("created_by")
+  updatedBy String?  @map("updated_by")
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("job_comments")
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  action     AuditAction
+  entityType String      @map("entity_type")
+  entityId   String?     @map("entity_id")
+  userId     String?     @map("user_id")
+  details    Json?
+  ipAddress  String?     @map("ip_address")
+  createdAt  DateTime    @default(now()) @map("created_date")
+  updatedAt  DateTime    @updatedAt @map("updated_date")
+  createdBy  String?     @map("created_by")
+  updatedBy  String?     @map("updated_by")
+  user       User?       @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
