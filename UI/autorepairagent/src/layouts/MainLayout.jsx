@@ -7,13 +7,13 @@ import {
   Chip
 } from '@mui/material';
 import {
-  Menu as MenuIcon, Dashboard, People, DirectionsCar, Work,
-  Psychology, Brightness4, Brightness7, Logout, Person,
+  Menu as MenuIcon, Dashboard, People, DirectionsCar, Work, AdminPanelSettings,
+  Business, Brightness4, Brightness7, Logout, Person,
   ChevronLeft
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { getDashboardRoute, ROLE_LABELS, isDepartmentRole } from '../utils/helpers';
+import { ROLE_LABELS, isDepartmentRole } from '../utils/helpers';
 
 const DRAWER_WIDTH = 240;
 
@@ -21,26 +21,27 @@ const getNavItems = (role) => {
   const items = [];
 
   if (role === 'ADMIN') {
-    items.push({ label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/admin' });
-    items.push({ label: 'Create Job', icon: <Work />, path: '/jobs/create' });
-    items.push({ label: 'Jobs', icon: <Work />, path: '/jobs' });
-    items.push({ label: 'AI Analysis', icon: <Psychology />, path: '/ai-analysis' });
+    items.push(
+      { label: 'Users', icon: <AdminPanelSettings />, path: '/users' },
+      { label: 'Departments', icon: <Business />, path: '/departments' },
+      { label: 'Customers', icon: <People />, path: '/customers' },
+      { label: 'Vehicles', icon: <DirectionsCar />, path: '/vehicles' },
+    );
   } else if (role === 'JOB_ADVISOR') {
-    items.push({ label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/advisor' });
-    items.push({ label: 'Create Job', icon: <Work />, path: '/jobs/create' });
-    items.push({ label: 'Customers', icon: <People />, path: '/customers' });
-    items.push({ label: 'Vehicles', icon: <DirectionsCar />, path: '/vehicles' });
+    items.push(
+      { label: 'Customers', icon: <People />, path: '/customers' },
+      { label: 'Vehicles', icon: <DirectionsCar />, path: '/vehicles' },
+    );
   } else if (role === 'CUSTOMER') {
-    items.push({ label: 'My Jobs', icon: <Dashboard />, path: '/dashboard/customer' });
-    items.push({ label: 'Jobs', icon: <Work />, path: '/jobs' });
+    items.push(
+      { label: 'My Jobs', icon: <Dashboard />, path: '/dashboard/customer' },
+      { label: 'Jobs', icon: <Work />, path: '/jobs' },
+    );
   } else if (isDepartmentRole(role)) {
-    items.push({ label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/department' });
-    items.push({ label: 'Jobs', icon: <Work />, path: '/jobs' });
-  }
-
-  if (role === 'JOB_ADVISOR') {
-    items.push({ label: 'Jobs', icon: <Work />, path: '/jobs' });
-    items.push({ label: 'AI Analysis', icon: <Psychology />, path: '/ai-analysis' });
+    items.push(
+      { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/department' },
+      { label: 'Jobs', icon: <Work />, path: '/jobs' },
+    );
   }
 
   return items;
@@ -87,7 +88,7 @@ export default function MainLayout() {
 
       <List sx={{ flex: 1, pt: 1 }}>
         {navItems.map(item => (
-          <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
+          <ListItem key={`${item.path}-${item.label}`} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
               selected={location.pathname === item.path || location.pathname.startsWith(item.path + '/')}
               onClick={() => { navigate(item.path); if (isMobile) setOpen(false); }}

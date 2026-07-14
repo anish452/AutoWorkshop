@@ -46,8 +46,8 @@ export const getApiErrorMessage = (err, fallback = 'Request failed. Please try a
 
 export const getDashboardRoute = (role) => {
   switch (role) {
-    case 'ADMIN': return '/dashboard/admin';
-    case 'JOB_ADVISOR': return '/dashboard/advisor';
+    case 'ADMIN': return '/users';
+    case 'JOB_ADVISOR': return '/customers';
     case 'CUSTOMER': return '/dashboard/customer';
     default: return '/dashboard/department';
   }
