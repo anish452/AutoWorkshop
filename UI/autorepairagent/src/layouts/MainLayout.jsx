@@ -7,9 +7,9 @@ import {
   Chip
 } from '@mui/material';
 import {
-  Menu as MenuIcon, Dashboard, People, DirectionsCar, Work, AdminPanelSettings,
-  Business, Psychology, Brightness4, Brightness7, Logout, Person,
-  ChevronLeft, Notifications
+  Menu as MenuIcon, Dashboard, People, DirectionsCar, Work,
+  Psychology, Brightness4, Brightness7, Logout, Person,
+  ChevronLeft
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -22,11 +22,9 @@ const getNavItems = (role) => {
 
   if (role === 'ADMIN') {
     items.push({ label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/admin' });
-    items.push({ label: 'Users', icon: <AdminPanelSettings />, path: '/users' });
-    items.push({ label: 'Departments', icon: <Business />, path: '/departments' });
-    items.push({ label: 'Customers', icon: <People />, path: '/customers' });
-    items.push({ label: 'Vehicles', icon: <DirectionsCar />, path: '/vehicles' });
     items.push({ label: 'Create Job', icon: <Work />, path: '/jobs/create' });
+    items.push({ label: 'Jobs', icon: <Work />, path: '/jobs' });
+    items.push({ label: 'AI Analysis', icon: <Psychology />, path: '/ai-analysis' });
   } else if (role === 'JOB_ADVISOR') {
     items.push({ label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/advisor' });
     items.push({ label: 'Create Job', icon: <Work />, path: '/jobs/create' });
@@ -40,7 +38,7 @@ const getNavItems = (role) => {
     items.push({ label: 'Jobs', icon: <Work />, path: '/jobs' });
   }
 
-  if (['ADMIN', 'JOB_ADVISOR'].includes(role)) {
+  if (role === 'JOB_ADVISOR') {
     items.push({ label: 'Jobs', icon: <Work />, path: '/jobs' });
     items.push({ label: 'AI Analysis', icon: <Psychology />, path: '/ai-analysis' });
   }
