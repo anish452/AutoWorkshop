@@ -34,6 +34,16 @@ export const isDepartmentRole = (role) => DEPARTMENT_ROLES.includes(role);
 export const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 export const formatDateTime = (d) => d ? new Date(d).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
+export const getApiErrorMessage = (err, fallback = 'Request failed. Please try again.') => {
+  if (!err.response) {
+    if (err.code === 'ECONNABORTED') {
+      return 'Request timed out. The server may be busy — please try again.';
+    }
+    return 'Cannot reach the API server. Make sure the backend is running on port 3000.';
+  }
+  return err.response?.data?.message || fallback;
+};
+
 export const getDashboardRoute = (role) => {
   switch (role) {
     case 'ADMIN': return '/dashboard/admin';

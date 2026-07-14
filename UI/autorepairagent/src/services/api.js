@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
 });
 
 api.interceptors.response.use(
@@ -47,7 +48,7 @@ export const vehicleService = {
 export const jobService = {
   getAll: () => api.get('/api/jobs'),
   getById: (id) => api.get(`/api/jobs/${id}`),
-  analyze: (data) => api.post('/api/jobs/analyze', data),
+  analyze: (data) => api.post('/api/jobs/analyze', data, { timeout: 90000 }),
   start: (id) => api.post(`/api/jobs/${id}/start`),
   complete: (id, data) => api.post(`/api/jobs/${id}/complete`, data),
   update: (id, data) => api.put(`/api/jobs/${id}`, data),

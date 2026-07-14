@@ -61,6 +61,7 @@ class DeepSeekAIService {
           temperature: 0.2,
           response_format: { type: 'json_object' },
         }),
+        signal: AbortSignal.timeout(15000),
       });
 
       if (!response.ok) {

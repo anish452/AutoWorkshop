@@ -1,4 +1,4 @@
-import { Grid, Card, CardContent, Typography, Box, CircularProgress, Alert } from '@mui/material';
+import { Grid, Card, CardContent, Typography, Box, CircularProgress, Alert, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardService } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
@@ -6,9 +6,11 @@ import StatusChip from '../../components/common/StatusChip';
 import { formatDateTime } from '../../utils/helpers';
 import { DirectionsCar, Work } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard-customer'],
     queryFn: () => dashboardService.customer().then(r => r.data.data),
@@ -78,6 +80,12 @@ export default function CustomerDashboard() {
                     <Typography variant="body2">{job.comments[job.comments.length - 1].comment}</Typography>
                   </Box>
                 )}
+
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button size="small" variant="outlined" onClick={() => navigate(`/jobs/${job.id}`)}>
+                    View Details
+                  </Button>
+                </Box>
               </CardContent>
             </Card>
           </Grid>

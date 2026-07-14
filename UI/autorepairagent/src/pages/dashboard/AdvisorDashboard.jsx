@@ -7,7 +7,7 @@ import KpiCard from '../../components/dashboard/KpiCard';
 import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
 import { useNavigate } from 'react-router-dom';
-import { formatDate } from '../../utils/helpers';
+import { formatDate, getApiErrorMessage } from '../../utils/helpers';
 
 const COLORS = ['#ED6C02', '#1976D2', '#2E7D32', '#D32F2F'];
 
@@ -19,7 +19,7 @@ export default function AdvisorDashboard() {
   });
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
-  if (error) return <Alert severity="error">Failed to load dashboard</Alert>;
+  if (error) return <Alert severity="error">{getApiErrorMessage(error, 'Failed to load dashboard')}</Alert>;
 
   const d = data || {};
   const pieData = [

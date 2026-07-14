@@ -1,5 +1,18 @@
 import { isDepartmentRole } from './helpers';
 
+export const JOB_VIEW_ROLES = [
+  'ADMIN',
+  'JOB_ADVISOR',
+  'MECHANICAL',
+  'ELECTRICAL',
+  'BODY_REPAIR',
+  'PAINT',
+  'GENERAL_INSPECTION',
+  'CUSTOMER',
+];
+
+export const canViewJob = (role) => JOB_VIEW_ROLES.includes(role);
+
 export const isJobStarted = (job) => (
   job?.status === 'IN_PROGRESS'
   || job?.status === 'COMPLETED'

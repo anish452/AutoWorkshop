@@ -4,14 +4,14 @@ import {
   TextField, InputAdornment, Typography, CircularProgress, Alert, TablePagination,
   MenuItem, Select, FormControl, InputLabel, Button, Stack, Chip, IconButton
 } from '@mui/material';
-import { Search, Add, Edit, Delete } from '@mui/icons-material';
+import { Search, Add, Edit, Delete, Visibility } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobService } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
 import JobEditDialog from '../../components/jobs/JobEditDialog';
 import { formatDate } from '../../utils/helpers';
-import { canEditJob, canDeleteJob, canAdvisorManageJob } from '../../utils/jobPermissions';
+import { canEditJob, canDeleteJob, canAdvisorManageJob, canViewJob } from '../../utils/jobPermissions';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
@@ -50,6 +50,8 @@ export default function JobsPage() {
     onSuccess: () => { qc.invalidateQueries(['jobs']); toast.success('Job deleted'); },
     onError: (e) => toast.error(e.response?.data?.message || 'Failed to delete job'),
   });
+
+  const viewJob = (id) => navigate(`/jobs/${id}`);
 
   const jobs = (Array.isArray(data) ? data : data?.jobs || []).filter(j => {
     const matchSearch = `${j.jobNumber} ${j.vehicle?.registrationNumber} ${j.issueDescription}`.toLowerCase().includes(search.toLowerCase());
@@ -116,9 +118,17 @@ export default function JobsPage() {
                 </TableHead>
                 <TableBody>
                   {jobs.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map(j => (
-                    <TableRow key={j.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${j.id}`)}>
+                    <TableRow key={j.id} hover sx={{ cursor: 'pointer' }} onClick={() => viewJob(j.id)}>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={700} color="primary">{j.jobNumber}</Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          color="primary"
+                          component="span"
+                          sx={{ textDecoration: 'underline', textUnderlineOffset: 3 }}
+                        >
+                          {j.jobNumber}
+                        </Typography>
                       </TableCell>
                       <TableCell>{j.vehicle?.registrationNumber || '—'}</TableCell>
                       <TableCell>
@@ -138,14 +148,30 @@ export default function JobsPage() {
                         {j.assignedUser ? `${j.assignedUser.firstName} ${j.assignedUser.lastName}` : '—'}
                       </TableCell>
                       <TableCell align="right" onClick={e => e.stopPropagation()}>
-                        {canEditJob(role, user?.id, j) && (
-                          <IconButton size="small" onClick={() => setEditJob(j)}><Edit fontSize="small" /></IconButton>
-                        )}
-                        {canDeleteJob(role, j) && (
-                          <IconButton size="small" color="error" onClick={() => {
-                            if (confirm('Delete this job?')) deleteMutation.mutate(j.id);
-                          }}><Delete fontSize="small" /></IconButton>
-                        )}
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
+                          {canViewJob(role) && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<Visibility fontSize="small" />}
+                              onClick={() => viewJob(j.id)}
+                            >
+                              View
+                            </Button>
+                          )}
+                          {canEditJob(role, user?.id, j) && (
+                            <IconButton size="small" onClick={() => setEditJob(j)} aria-label="Edit job">
+                              <Edit fontSize="small" />
+                            </IconButton>
+                          )}
+                          {canDeleteJob(role, j) && (
+                            <IconButton size="small" color="error" onClick={() => {
+                              if (confirm('Delete this job?')) deleteMutation.mutate(j.id);
+                            }} aria-label="Delete job">
+                              <Delete fontSize="small" />
+                            </IconButton>
+                          )}
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ))}

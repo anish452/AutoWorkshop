@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Card, CardContent, Grid, Typography, Button, CircularProgress, Alert,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Divider,
-  List, ListItem, ListItemText, Chip, LinearProgress
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+  List, ListItem, Chip, LinearProgress
 } from '@mui/material';
 import { PlayArrow, CheckCircle, ArrowBack, Psychology, Edit, Delete } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -21,9 +21,25 @@ function InfoRow({ label, value }) {
   return (
     <Box sx={{ display: 'flex', py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
       <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{label}</Typography>
-      <Typography variant="body2" fontWeight={500}>{value || '—'}</Typography>
+      <Typography variant="body2" fontWeight={500} sx={{ flex: 1, whiteSpace: 'pre-wrap' }}>{value || '—'}</Typography>
     </Box>
   );
+}
+
+function getAnalysisIssues(job) {
+  const logIssues = job?.aiAnalysisLog?.issues;
+  if (Array.isArray(logIssues) && logIssues.length > 0) return logIssues;
+
+  if (job?.issueDescription) {
+    return [{
+      issue: job.issueDescription,
+      department: job.department?.code || job.department?.name,
+      confidence: job.confidence ?? 0,
+      explanation: job.aiExplanation || 'Classification recorded for this job',
+    }];
+  }
+
+  return [];
 }
 
 export default function JobDetailPage() {
@@ -79,17 +95,40 @@ export default function JobDetailPage() {
   });
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
-  if (error) return <Alert severity="error">Failed to load job</Alert>;
+  if (error) {
+    const message = error.response?.status === 403
+      ? 'You do not have permission to view this job.'
+      : error.response?.status === 404
+        ? 'Job not found.'
+        : 'Failed to load job details.';
+    return (
+      <Box>
+        <Button startIcon={<ArrowBack />} onClick={() => navigate('/jobs')} sx={{ mb: 2 }}>
+          Back to Jobs
+        </Button>
+        <Alert severity="error">{message}</Alert>
+      </Box>
+    );
+  }
   if (!job) return <Alert severity="warning">Job not found</Alert>;
 
-  const canAct = isDepartmentRole(role);
   const userId = user?.id;
+  const isAssignedToUser = job.assignedUserId === userId || job.assignedUser?.id === userId;
+  const canAct = isDepartmentRole(role) && isAssignedToUser;
   const showEdit = canEditJob(role, userId, job);
   const showDelete = canDeleteJob(role, job);
   const advisorEdit = canAdvisorManageJob(role, job);
+  const analysisIssues = getAnalysisIssues(job);
+  const analysisSummary = job.aiAnalysisLog?.rawResponse
+    || job.aiAnalysisLog?.complaintDescription
+    || job.complaintDescription;
 
   return (
     <Box>
+      <Button startIcon={<ArrowBack />} onClick={() => navigate('/jobs')} sx={{ mb: 2 }}>
+        Back to Jobs
+      </Button>
+
       <PageHeader
         title={job.jobNumber}
         subtitle={job.issueDescription}
@@ -137,7 +176,6 @@ export default function JobDetailPage() {
       />
 
       <Grid container spacing={3}>
-        {/* Job Info */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
@@ -147,18 +185,19 @@ export default function JobDetailPage() {
               </Box>
               <InfoRow label="Job Number" value={job.jobNumber} />
               <InfoRow label="Department" value={job.department?.name} />
+              <InfoRow label="Complaint" value={job.complaintDescription} />
+              <InfoRow label="Issue" value={job.issueDescription} />
               <InfoRow label="Assigned To" value={job.assignedUser ? `${job.assignedUser.firstName} ${job.assignedUser.lastName}` : 'Unassigned'} />
               <InfoRow label="Created" value={formatDateTime(job.createdAt)} />
               <InfoRow label="Started" value={formatDateTime(job.startedAt)} />
               <InfoRow label="Completed" value={formatDateTime(job.completedAt)} />
-              {job.timeTakenMinutes && (
+              {job.timeTakenMinutes != null && (
                 <InfoRow label="Time Taken" value={`${job.timeTakenMinutes} minutes`} />
               )}
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Vehicle & Customer */}
         <Grid item xs={12} md={6}>
           <Card sx={{ mb: 2 }}>
             <CardContent>
@@ -179,8 +218,7 @@ export default function JobDetailPage() {
           </Card>
         </Grid>
 
-        {/* AI Analysis */}
-        {job.aiAnalysisLog && (
+        {(job.aiAnalysisLog || job.aiExplanation || job.confidence != null) && (
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
@@ -188,15 +226,27 @@ export default function JobDetailPage() {
                   <Psychology color="primary" />
                   <Typography variant="h6" fontFamily="Space Grotesk" fontWeight={600}>AI Analysis</Typography>
                 </Box>
-                <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 2, mb: 2 }}>
-                  <Typography variant="body2">{job.aiAnalysisLog.reasoning}</Typography>
-                </Box>
-                {job.aiAnalysisLog.issues?.map((issue, i) => (
+                {analysisSummary && (
+                  <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 2, mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                      Original Complaint
+                    </Typography>
+                    <Typography variant="body2">{analysisSummary}</Typography>
+                  </Box>
+                )}
+                {analysisIssues.map((issue, i) => (
                   <Box key={i} sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, gap: 1, flexWrap: 'wrap' }}>
                       <Typography variant="body2" fontWeight={600}>{issue.issue}</Typography>
-                      <Chip label={`${Math.round((issue.confidence || 0) * 100)}%`} size="small" color="primary" />
+                      <Chip
+                        label={`${Math.round((issue.confidence || 0) * 100)}%`}
+                        size="small"
+                        color="primary"
+                      />
                     </Box>
+                    {issue.department && (
+                      <Chip label={issue.department} size="small" variant="outlined" sx={{ mb: 0.5 }} />
+                    )}
                     <LinearProgress
                       variant="determinate"
                       value={(issue.confidence || 0) * 100}
@@ -210,7 +260,6 @@ export default function JobDetailPage() {
           </Grid>
         )}
 
-        {/* Comments */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
@@ -238,7 +287,6 @@ export default function JobDetailPage() {
         </Grid>
       </Grid>
 
-      {/* Complete Job Dialog */}
       <Dialog open={completeOpen} onClose={() => setCompleteOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle fontFamily="Space Grotesk">Complete Job</DialogTitle>
         <DialogContent>

@@ -1,4 +1,4 @@
-import { Grid, Card, CardContent, Typography, Box, CircularProgress, Alert, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
+import { Grid, Card, CardContent, Typography, Box, CircularProgress, Alert, Table, TableHead, TableRow, TableCell, TableBody, Button } from '@mui/material';
 import { People, DirectionsCar, Work, CheckCircle, Cancel, HourglassEmpty, PlayArrow, Person } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -9,11 +9,13 @@ import { dashboardService, jobService } from '../../services/api';
 import KpiCard from '../../components/dashboard/KpiCard';
 import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
-import { formatDate } from '../../utils/helpers';
+import { formatDate, getApiErrorMessage } from '../../utils/helpers';
+import { useNavigate } from 'react-router-dom';
 
 const COLORS = ['#1976D2', '#2E7D32', '#ED6C02', '#D32F2F', '#9C27B0'];
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard-admin'],
     queryFn: () => dashboardService.admin().then(r => r.data.data),
@@ -27,7 +29,7 @@ export default function AdminDashboard() {
   const recentJobs = (Array.isArray(jobsData) ? jobsData : jobsData?.jobs || []).slice(0, 10);
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
-  if (error) return <Alert severity="error">Failed to load dashboard data</Alert>;
+  if (error) return <Alert severity="error">{getApiErrorMessage(error, 'Failed to load dashboard data')}</Alert>;
 
   const d = data || {};
   const pieData = [
@@ -146,21 +148,25 @@ export default function AdminDashboard() {
                     <TableCell>Issue</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Created</TableCell>
+                    <TableCell>Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {recentJobs.length > 0 ? recentJobs.map(job => (
-                    <TableRow key={job.id} hover>
+                    <TableRow key={job.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${job.id}`)}>
                       <TableCell><Typography variant="body2" fontWeight={700}>{job.jobNumber}</Typography></TableCell>
                       <TableCell><Typography variant="body2" fontWeight={600}>{job.vehicle?.registrationNumber || '—'}</Typography></TableCell>
                       <TableCell>{job.department?.name || '—'}</TableCell>
                       <TableCell sx={{ maxWidth: 240 }}><Typography variant="body2" noWrap>{job.issueDescription}</Typography></TableCell>
                       <TableCell><StatusChip status={job.status} /></TableCell>
                       <TableCell>{formatDate(job.createdAt)}</TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
+                        <Button size="small" onClick={() => navigate(`/jobs/${job.id}`)}>View</Button>
+                      </TableCell>
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">No jobs yet</TableCell>
+                      <TableCell colSpan={7} align="center">No jobs yet</TableCell>
                     </TableRow>
                   )}
                 </TableBody>

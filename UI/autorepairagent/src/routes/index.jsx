@@ -53,9 +53,9 @@ export default function AppRoutes() {
         <Route path="/customers" element={<ProtectedRoute allowedRoles={['ADMIN','JOB_ADVISOR']}><CustomersPage /></ProtectedRoute>} />
         <Route path="/vehicles" element={<ProtectedRoute allowedRoles={['ADMIN','JOB_ADVISOR']}><VehiclesPage /></ProtectedRoute>} />
 
-        <Route path="/jobs" element={<ProtectedRoute allowedRoles={['ADMIN','JOB_ADVISOR','MECHANICAL','ELECTRICAL','BODY_REPAIR','PAINT','GENERAL_INSPECTION']}><JobsPage /></ProtectedRoute>} />
+        <Route path="/jobs" element={<ProtectedRoute allowedRoles={['ADMIN','JOB_ADVISOR','MECHANICAL','ELECTRICAL','BODY_REPAIR','PAINT','GENERAL_INSPECTION','CUSTOMER']}><JobsPage /></ProtectedRoute>} />
         <Route path="/jobs/create" element={<ProtectedRoute allowedRoles={['ADMIN','JOB_ADVISOR']}><CreateJobPage /></ProtectedRoute>} />
-        <Route path="/jobs/:id" element={<ProtectedRoute><JobDetailPage /></ProtectedRoute>} />
+        <Route path="/jobs/:id" element={<ProtectedRoute allowedRoles={['ADMIN','JOB_ADVISOR','MECHANICAL','ELECTRICAL','BODY_REPAIR','PAINT','GENERAL_INSPECTION','CUSTOMER']}><JobDetailPage /></ProtectedRoute>} />
 
         <Route path="/users" element={<ProtectedRoute allowedRoles={['ADMIN']}><UsersPage /></ProtectedRoute>} />
         <Route path="/departments" element={<ProtectedRoute allowedRoles={['ADMIN']}><DepartmentsPage /></ProtectedRoute>} />

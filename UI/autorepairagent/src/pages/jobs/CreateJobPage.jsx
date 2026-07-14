@@ -13,6 +13,7 @@ import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
 import JobEditDialog from '../../components/jobs/JobEditDialog';
 import { canAdvisorManageJob } from '../../utils/jobPermissions';
+import { getApiErrorMessage } from '../../utils/helpers';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
@@ -80,7 +81,7 @@ export default function CreateJobPage() {
       setResult(res.data.data);
       toast.success(res.data.message || 'Jobs created successfully!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Analysis failed. Please try again.');
+      setError(getApiErrorMessage(err, 'Analysis failed. Please try again.'));
     } finally {
       setAnalyzing(false);
     }
@@ -130,7 +131,9 @@ export default function CreateJobPage() {
                       onChange={(_, option) => {
                         field.onChange(typeof option === 'string' ? option : option?.registrationNumber || '');
                       }}
-                      onInputChange={(_, value) => field.onChange(value)}
+                      onInputChange={(_, value, reason) => {
+                        if (reason === 'input') field.onChange(value);
+                      }}
                       renderInput={(params) => (
                         <TextField
                           {...params}

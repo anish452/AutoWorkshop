@@ -6,9 +6,8 @@ import KpiCard from '../../components/dashboard/KpiCard';
 import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
 import { useNavigate } from 'react-router-dom';
-import { formatDateTime } from '../../utils/helpers';
 import { useAuth } from '../../contexts/AuthContext';
-import { ROLE_LABELS } from '../../utils/helpers';
+import { formatDateTime, getApiErrorMessage, ROLE_LABELS } from '../../utils/helpers';
 
 export default function DepartmentDashboard() {
   const { role } = useAuth();
@@ -19,7 +18,7 @@ export default function DepartmentDashboard() {
   });
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
-  if (error) return <Alert severity="error">Failed to load dashboard</Alert>;
+  if (error) return <Alert severity="error">{getApiErrorMessage(error, 'Failed to load dashboard')}</Alert>;
 
   const d = data || {};
 

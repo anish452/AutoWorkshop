@@ -21,8 +21,12 @@ const getNavItems = (role) => {
   const items = [];
 
   if (role === 'ADMIN') {
+    items.push({ label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/admin' });
     items.push({ label: 'Users', icon: <AdminPanelSettings />, path: '/users' });
     items.push({ label: 'Departments', icon: <Business />, path: '/departments' });
+    items.push({ label: 'Customers', icon: <People />, path: '/customers' });
+    items.push({ label: 'Vehicles', icon: <DirectionsCar />, path: '/vehicles' });
+    items.push({ label: 'Create Job', icon: <Work />, path: '/jobs/create' });
   } else if (role === 'JOB_ADVISOR') {
     items.push({ label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/advisor' });
     items.push({ label: 'Create Job', icon: <Work />, path: '/jobs/create' });
@@ -30,12 +34,13 @@ const getNavItems = (role) => {
     items.push({ label: 'Vehicles', icon: <DirectionsCar />, path: '/vehicles' });
   } else if (role === 'CUSTOMER') {
     items.push({ label: 'My Jobs', icon: <Dashboard />, path: '/dashboard/customer' });
+    items.push({ label: 'Jobs', icon: <Work />, path: '/jobs' });
   } else if (isDepartmentRole(role)) {
     items.push({ label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/department' });
     items.push({ label: 'Jobs', icon: <Work />, path: '/jobs' });
   }
 
-  if (role === 'JOB_ADVISOR') {
+  if (['ADMIN', 'JOB_ADVISOR'].includes(role)) {
     items.push({ label: 'Jobs', icon: <Work />, path: '/jobs' });
     items.push({ label: 'AI Analysis', icon: <Psychology />, path: '/ai-analysis' });
   }
