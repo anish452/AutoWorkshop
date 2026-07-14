@@ -7,14 +7,23 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "dev:ui": "npm run dev --prefix UI/autorepairagent",
-    "dev:all": "npx concurrently -n api,ui -c blue,green \"npm run dev\" \"npm run dev:ui\"",
+    "dev:all": "concurrently -n api,ui -c blue,green \"npm run dev\" \"npm run dev:ui\"",
+    "install:all": "npm install && npm install --prefix UI/autorepairagent",
+    "postinstall": "prisma generate",
+    "setup": "npm run install:all && npm run db:setup",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "node prisma/seed.js",
     "db:setup": "prisma migrate deploy && node prisma/seed.js"
   },
-  "keywords": ["autorepair", "express", "prisma", "deepseek", "ai"],
+  "keywords": [
+    "autorepair",
+    "express",
+    "prisma",
+    "deepseek",
+    "ai"
+  ],
   "author": "AutoRepairAgent",
   "license": "MIT",
   "dependencies": {
@@ -30,6 +39,7 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "concurrently": "^9.2.4",
     "nodemon": "^3.1.10",
     "prisma": "^6.9.0"
   },

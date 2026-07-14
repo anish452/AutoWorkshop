@@ -26,61 +26,61 @@ Production-ready backend system for vehicle repair centers/workshops with AI-pow
 - **Dashboard APIs** — Role-specific dashboards for Admin, Advisor, Department, Customer
 - **Security** — JWT, RBAC, Helmet, CORS, Rate Limiting, Input Validation
 
-## Quick Start
+## Quick Start (Full Stack)
+
+Pre-configured `.env` files are included so a new developer can clone and run immediately.
 
 ### Prerequisites
 
-- Node.js 18+ (LTS)
-- PostgreSQL database (Neon connection provided)
-- DeepSeek API key
+- **Node.js 18+** (LTS recommended)
+- **Git**
 
-### Installation
-
-```bash
-cd AutoRepairAgent
-npm install
-```
-
-### Environment Setup
-
-Copy `.env.example` to `.env` and configure:
-
-```env
-DATABASE_URL=postgresql://...
-JWT_SECRET=your-strong-secret-min-16-chars
-DEEPSEEK_API_KEY=your-deepseek-api-key
-PORT=3000
-```
-
-### Database Setup
+### 1. Clone & install
 
 ```bash
-# Generate Prisma client
-npm run prisma:generate
-
-# Run migrations
-npm run prisma:migrate
-
-# Seed test data
-npm run prisma:seed
-
-# Or all at once:
-npm run db:setup
+git clone https://github.com/anish452/AutoWorkshop.git
+cd AutoWorkshop
+npm run setup
 ```
 
-### Start Server
+`npm run setup` installs backend + frontend dependencies, runs migrations, and seeds test data.
+
+### 2. Run backend + frontend together
 
 ```bash
-# Development (with nodemon)
-npm run dev
-
-# Production
-npm start
+npm run dev:all
 ```
 
-Server runs at `http://localhost:3000`
+| Service | URL |
+|---------|-----|
+| **Frontend (React UI)** | http://localhost:5173 |
+| **Backend API** | http://localhost:3000 |
+| **Health check** | http://localhost:3000/health |
 
-Health check: `GET http://localhost:3000/health`
+### 3. Login
+
+Open http://localhost:5173/login and sign in with any test account below.  
+Default password for all users: **`Password123!`**
+
+### Environment files (already included)
+
+| File | Purpose |
+|------|---------|
+| `.env` | Backend — database, JWT, DeepSeek (shared Neon DB for dev) |
+| `UI/autorepairagent/.env` | Frontend — Vite proxy to API (leave `VITE_API_BASE_URL` empty in dev) |
+
+To use your own database, copy `.env.example` → `.env` and update `DATABASE_URL`.  
+AI job creation works without a real DeepSeek key — the system falls back to keyword classification.
+
+### Manual setup (optional)
+
+```bash
+npm run install:all    # install backend + UI dependencies
+npm run db:setup       # migrate + seed only
+npm run dev            # API only (port 3000)
+npm run dev:ui         # UI only (port 5173)
+npm start              # production API
+```
 
 ## Test Accounts
 
@@ -210,9 +210,11 @@ AutoRepairAgent/
 ├── prisma/
 │   ├── schema.prisma          # Database schema
 │   ├── seed.js                # Seed data
-│   └── migrations/            # Auto-generated migrations
+│   └── migrations/            # Database migrations
+├── UI/autorepairagent/        # React + Vite frontend
 ├── postman/
 │   └── AutoRepairAgent.postman_collection.json
+├── docs/                      # Reports, presentations, screenshots
 ├── src/
 │   ├── app.js                 # Express app setup
 │   ├── server.js              # Server entry point
@@ -228,7 +230,7 @@ AutoRepairAgent/
 │   │   ├── middlewares/       # Auth, RBAC, validation
 │   │   └── validators/        # Zod schemas
 │   └── shared/                # Errors, utilities
-├── .env
+├── .env                       # Backend env (included for dev)
 ├── .env.example
 └── package.json
 ```
