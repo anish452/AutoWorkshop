@@ -29,6 +29,16 @@ const complete = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Job completed', data: job });
 });
 
+const pause = asyncHandler(async (req, res) => {
+  const job = await JobService.pauseJob(req.job, req.body.reason, req.user.id, req.ip);
+  res.json({ success: true, message: 'Job paused', data: job });
+});
+
+const resume = asyncHandler(async (req, res) => {
+  const job = await JobService.resumeJob(req.job, req.user.id, req.ip);
+  res.json({ success: true, message: 'Job resumed', data: job });
+});
+
 const update = asyncHandler(async (req, res) => {
   const job = await JobService.updateJob(req.job, req.body, req.user, req.ip);
   res.json({ success: true, message: 'Job updated', data: job });
@@ -39,4 +49,4 @@ const remove = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Job deleted' });
 });
 
-module.exports = { analyze, getAll, getById, start, complete, update, remove };
+module.exports = { analyze, getAll, getById, start, pause, resume, complete, update, remove };

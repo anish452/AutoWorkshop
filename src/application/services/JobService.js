@@ -7,7 +7,7 @@ const {
   UserRepository,
 } = require('../../infrastructure/repositories');
 const { NotFoundError, ForbiddenError, ValidationError } = require('../../shared/errors/AppError');
-const { JOB_STATUS, ALL_JOBS_ROLES } = require('../../domain/enums');
+const { JOB_STATUS, ALL_JOBS_ROLES, PAUSE_REASONS } = require('../../domain/enums');
 const { isDepartmentStaff } = require('../../shared/utils/departmentUser');
 const { generateJobNumber, calculateTimeTakenMinutes } = require('../../shared/utils');
 const DeepSeekAIService = require('./DeepSeekAIService');
@@ -17,9 +17,22 @@ class JobService {
   isJobStarted(job) {
     return (
       job.status === JOB_STATUS.IN_PROGRESS
+      || job.status === JOB_STATUS.PAUSED
       || job.status === JOB_STATUS.COMPLETED
       || job.startedAt != null
     );
+  }
+
+  assertAssignedTechnician(job, userId) {
+    if (job.assignedUserId !== userId) {
+      throw new ForbiddenError('Only the assigned technician can perform this action');
+    }
+  }
+
+  validatePauseReason(reason) {
+    if (!reason || !Object.values(PAUSE_REASONS).includes(reason)) {
+      throw new ValidationError('Invalid pause reason');
+    }
   }
 
   async analyzeAndCreateJobs({ vehicleRegistrationNo, description, customerId }, userId, ipAddress) {
@@ -143,9 +156,21 @@ class JobService {
       throw new ValidationError(`Cannot start job in ${job.status} status`);
     }
 
+    if (job.status === JOB_STATUS.IN_PROGRESS) {
+      throw new ValidationError('Job is already in progress');
+    }
+
+    if (job.status === JOB_STATUS.PAUSED) {
+      throw new ValidationError('Job is paused — use resume instead');
+    }
+
+    this.assertAssignedTechnician(job, userId);
+
     const updated = await JobRepository.update(job.id, {
       status: JOB_STATUS.IN_PROGRESS,
-      startedAt: new Date(),
+      startedAt: job.startedAt || new Date(),
+      pauseReason: null,
+      pausedAt: null,
       updatedBy: userId,
     });
 
@@ -162,20 +187,140 @@ class JobService {
     return JobRepository.findByIdWithRelations(updated.id);
   }
 
-  async completeJob(job, comments, userId, ipAddress) {
-    if (job.status !== JOB_STATUS.IN_PROGRESS && job.status !== JOB_STATUS.ASSIGNED) {
-      throw new ValidationError('Job must be in progress or assigned to complete');
+  async pauseJob(job, reason, userId, ipAddress) {
+    if (job.status !== JOB_STATUS.IN_PROGRESS) {
+      throw new ValidationError('Only in-progress jobs can be paused');
     }
 
+    this.assertAssignedTechnician(job, userId);
+    this.validatePauseReason(reason);
+
+    const pausedAt = new Date();
+
+    await prisma.jobPause.create({
+      data: {
+        jobId: job.id,
+        userId,
+        reason,
+        pausedAt,
+        createdBy: userId,
+      },
+    });
+
+    const updated = await JobRepository.update(job.id, {
+      status: JOB_STATUS.PAUSED,
+      pauseReason: reason,
+      pausedAt,
+      updatedBy: userId,
+    });
+
+    await AuditService.log({
+      action: 'JOB_PAUSED',
+      entityType: 'Job',
+      entityId: job.id,
+      userId,
+      details: { jobNumber: job.jobNumber, reason },
+      ipAddress,
+      createdBy: userId,
+    });
+
+    return JobRepository.findByIdWithRelations(updated.id);
+  }
+
+  async resumeJob(job, userId, ipAddress) {
+    if (job.status !== JOB_STATUS.PAUSED) {
+      throw new ValidationError('Only paused jobs can be resumed');
+    }
+
+    this.assertAssignedTechnician(job, userId);
+
+    const resumedAt = new Date();
+    const activePause = await prisma.jobPause.findFirst({
+      where: { jobId: job.id, resumedAt: null },
+      orderBy: { pausedAt: 'desc' },
+    });
+
+    let pauseDuration = 0;
+    if (activePause) {
+      pauseDuration = Math.round((resumedAt - new Date(activePause.pausedAt)) / 60000);
+      await prisma.jobPause.update({
+        where: { id: activePause.id },
+        data: {
+          resumedAt,
+          durationMinutes: pauseDuration,
+          updatedBy: userId,
+        },
+      });
+    } else if (job.pausedAt) {
+      pauseDuration = Math.round((resumedAt - new Date(job.pausedAt)) / 60000);
+    }
+
+    const totalPausedMinutes = (job.totalPausedMinutes || 0) + pauseDuration;
+
+    const updated = await JobRepository.update(job.id, {
+      status: JOB_STATUS.IN_PROGRESS,
+      pauseReason: null,
+      pausedAt: null,
+      totalPausedMinutes,
+      updatedBy: userId,
+    });
+
+    await AuditService.log({
+      action: 'JOB_RESUMED',
+      entityType: 'Job',
+      entityId: job.id,
+      userId,
+      details: { jobNumber: job.jobNumber, pauseDurationMinutes: pauseDuration },
+      ipAddress,
+      createdBy: userId,
+    });
+
+    return JobRepository.findByIdWithRelations(updated.id);
+  }
+
+  async completeJob(job, comments, userId, ipAddress) {
+    if (![JOB_STATUS.IN_PROGRESS, JOB_STATUS.ASSIGNED, JOB_STATUS.PAUSED].includes(job.status)) {
+      throw new ValidationError('Job must be in progress, paused, or assigned to complete');
+    }
+
+    this.assertAssignedTechnician(job, userId);
+
     const completedAt = new Date();
-    const startedAt = job.startedAt || new Date();
-    const timeTakenMinutes = calculateTimeTakenMinutes(startedAt, completedAt);
+    let totalPausedMinutes = job.totalPausedMinutes || 0;
+
+    if (job.status === JOB_STATUS.PAUSED && job.pausedAt) {
+      const extraPause = Math.round((completedAt - new Date(job.pausedAt)) / 60000);
+      totalPausedMinutes += extraPause;
+
+      const activePause = await prisma.jobPause.findFirst({
+        where: { jobId: job.id, resumedAt: null },
+        orderBy: { pausedAt: 'desc' },
+      });
+
+      if (activePause) {
+        await prisma.jobPause.update({
+          where: { id: activePause.id },
+          data: {
+            resumedAt: completedAt,
+            durationMinutes: extraPause,
+            updatedBy: userId,
+          },
+        });
+      }
+    }
+
+    const startedAt = job.startedAt || completedAt;
+    const timeTakenMinutes = calculateTimeTakenMinutes(startedAt, completedAt, totalPausedMinutes);
 
     await JobRepository.update(job.id, {
       status: JOB_STATUS.COMPLETED,
       completedAt,
       startedAt: job.startedAt || startedAt,
       timeTakenMinutes,
+      totalPausedMinutes,
+      completedByUserId: userId,
+      pauseReason: null,
+      pausedAt: null,
       updatedBy: userId,
     });
 
@@ -193,7 +338,7 @@ class JobService {
       entityType: 'Job',
       entityId: job.id,
       userId,
-      details: { jobNumber: job.jobNumber, comments, timeTakenMinutes },
+      details: { jobNumber: job.jobNumber, comments, timeTakenMinutes, totalPausedMinutes },
       ipAddress,
       createdBy: userId,
     });

@@ -7,6 +7,7 @@ const validate = require('../middlewares/validate');
 const {
   analyzeJobSchema,
   completeJobSchema,
+  pauseJobSchema,
   updateJobSchema,
   idParamSchema,
 } = require('../validators/schemas');
@@ -59,6 +60,24 @@ router.post(
   validate(idParamSchema),
   canAccessJob,
   jobController.start
+);
+
+router.post(
+  '/:id/pause',
+  authenticate,
+  isDepartmentUser,
+  validate(pauseJobSchema),
+  canAccessJob,
+  jobController.pause
+);
+
+router.post(
+  '/:id/resume',
+  authenticate,
+  isDepartmentUser,
+  validate(idParamSchema),
+  canAccessJob,
+  jobController.resume
 );
 
 router.post(

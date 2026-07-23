@@ -110,6 +110,13 @@ const completeJobSchema = z.object({
   }),
 });
 
+const pauseJobSchema = z.object({
+  params: z.object({ id: z.string().uuid() }),
+  body: z.object({
+    reason: z.enum(['TEA_BREAK', 'LUNCH_BREAK', 'PART_PENDING']),
+  }),
+});
+
 const updateJobSchema = z.object({
   params: z.object({ id: z.string().uuid() }),
   body: z.object({
@@ -135,6 +142,7 @@ module.exports = {
   updateVehicleSchema,
   analyzeJobSchema,
   completeJobSchema,
+  pauseJobSchema,
   updateJobSchema,
   idParamSchema,
 };

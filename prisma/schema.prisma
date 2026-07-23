@@ -30,6 +30,7 @@ enum JobStatus {
   PENDING
   ASSIGNED
   IN_PROGRESS
+  PAUSED
   COMPLETED
   CANCELLED
 }
@@ -39,6 +40,8 @@ enum AuditAction {
   JOB_CREATED
   JOB_ASSIGNED
   JOB_STARTED
+  JOB_PAUSED
+  JOB_RESUMED
   JOB_COMPLETED
   USER_CREATED
   USER_UPDATED
@@ -103,8 +106,10 @@ model User {
   department   Department? @relation(fields: [departmentId], references: [id])
   customer     Customer?   @relation(fields: [customerId], references: [id])
   assignedJobs Job[]       @relation("AssignedJobs")
+  completedJobs Job[]      @relation("CompletedJobs")
   jobAssignments JobAssignment[]
   jobComments  JobComment[]
+  jobPauses    JobPause[]
   auditLogs    AuditLog[]
 
   @@map("users")
@@ -174,7 +179,11 @@ model Job {
   assignedUserId       String?       @map("assigned_user_id")
   startedAt            DateTime?     @map("started_at")
   completedAt          DateTime?     @map("completed_at")
+  completedByUserId    String?       @map("completed_by_user_id")
   timeTakenMinutes     Int?          @map("time_taken_minutes")
+  pauseReason          String?       @map("pause_reason")
+  pausedAt             DateTime?     @map("paused_at")
+  totalPausedMinutes   Int           @default(0) @map("total_paused_minutes")
   createdAt            DateTime      @default(now()) @map("created_date")
   updatedAt            DateTime      @updatedAt @map("updated_date")
   createdBy            String?       @map("created_by")
@@ -183,10 +192,30 @@ model Job {
   department           Department    @relation(fields: [departmentId], references: [id])
   aiAnalysisLog        AIAnalysisLog? @relation(fields: [aiAnalysisLogId], references: [id])
   assignedUser         User?         @relation("AssignedJobs", fields: [assignedUserId], references: [id])
+  completedBy          User?         @relation("CompletedJobs", fields: [completedByUserId], references: [id])
   assignments          JobAssignment[]
   comments             JobComment[]
+  pauses               JobPause[]
 
   @@map("jobs")
+}
+
+model JobPause {
+  id              String    @id @default(uuid())
+  jobId           String    @map("job_id")
+  userId          String    @map("user_id")
+  reason          String
+  pausedAt        DateTime  @default(now()) @map("paused_at")
+  resumedAt       DateTime? @map("resumed_at")
+  durationMinutes Int?      @map("duration_minutes")
+  createdAt       DateTime  @default(now()) @map("created_date")
+  updatedAt       DateTime  @updatedAt @map("updated_date")
+  createdBy       String?   @map("created_by")
+  updatedBy       String?   @map("updated_by")
+  job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id])
+
+  @@map("job_pauses")
 }
 
 model JobAssignment {

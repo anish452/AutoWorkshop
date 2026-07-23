@@ -29,9 +29,14 @@ class JobRepository extends BaseRepository {
       vehicle: { include: { customer: true } },
       department: true,
       assignedUser: { select: this.getUserSelect() },
+      completedBy: { select: this.getUserSelect() },
       comments: {
         include: { user: { select: this.getUserSelect() } },
         orderBy: { createdAt: 'desc' },
+      },
+      pauses: {
+        include: { user: { select: this.getUserSelect() } },
+        orderBy: { pausedAt: 'desc' },
       },
       aiAnalysisLog: true,
     };

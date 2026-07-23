@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon, Dashboard, People, DirectionsCar, Work, AdminPanelSettings,
-  Business, Brightness4, Brightness7, Logout, Person,
+  Business, Psychology, Brightness4, Brightness7, Logout, Person,
   ChevronLeft
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,15 +22,23 @@ const getNavItems = (role) => {
 
   if (role === 'ADMIN') {
     items.push(
+      { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/admin' },
       { label: 'Users', icon: <AdminPanelSettings />, path: '/users' },
       { label: 'Departments', icon: <Business />, path: '/departments' },
       { label: 'Customers', icon: <People />, path: '/customers' },
       { label: 'Vehicles', icon: <DirectionsCar />, path: '/vehicles' },
+      { label: 'Jobs', icon: <Work />, path: '/jobs' },
+      { label: 'Create Job', icon: <Work />, path: '/jobs/create' },
+      { label: 'AI Analysis', icon: <Psychology />, path: '/ai-analysis' },
     );
   } else if (role === 'JOB_ADVISOR') {
     items.push(
+      { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/advisor' },
+      { label: 'Create Job', icon: <Work />, path: '/jobs/create' },
       { label: 'Customers', icon: <People />, path: '/customers' },
       { label: 'Vehicles', icon: <DirectionsCar />, path: '/vehicles' },
+      { label: 'Jobs', icon: <Work />, path: '/jobs' },
+      { label: 'AI Analysis', icon: <Psychology />, path: '/ai-analysis' },
     );
   } else if (role === 'CUSTOMER') {
     items.push(

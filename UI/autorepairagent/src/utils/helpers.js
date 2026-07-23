@@ -2,6 +2,7 @@ export const STATUS_COLORS = {
   PENDING: 'warning',
   ASSIGNED: 'info',
   IN_PROGRESS: 'primary',
+  PAUSED: 'secondary',
   COMPLETED: 'success',
   CANCELLED: 'error',
 };
@@ -10,8 +11,31 @@ export const STATUS_LABELS = {
   PENDING: 'Pending',
   ASSIGNED: 'Assigned',
   IN_PROGRESS: 'In Progress',
+  PAUSED: 'Paused',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
+};
+
+export const PAUSE_REASONS = {
+  TEA_BREAK: 'TEA_BREAK',
+  LUNCH_BREAK: 'LUNCH_BREAK',
+  PART_PENDING: 'PART_PENDING',
+};
+
+export const PAUSE_REASON_LABELS = {
+  TEA_BREAK: 'Tea Break',
+  LUNCH_BREAK: 'Lunch Break',
+  PART_PENDING: 'Part Pending',
+};
+
+export const PENDING_JOB_STATUSES = ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'PAUSED'];
+
+export const formatMinutes = (minutes) => {
+  if (minutes == null) return '—';
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins ? `${hours}h ${mins}m` : `${hours}h`;
 };
 
 export const ROLE_LABELS = {
@@ -46,8 +70,8 @@ export const getApiErrorMessage = (err, fallback = 'Request failed. Please try a
 
 export const getDashboardRoute = (role) => {
   switch (role) {
-    case 'ADMIN': return '/users';
-    case 'JOB_ADVISOR': return '/customers';
+    case 'ADMIN': return '/dashboard/admin';
+    case 'JOB_ADVISOR': return '/dashboard/advisor';
     case 'CUSTOMER': return '/dashboard/customer';
     default: return '/dashboard/department';
   }

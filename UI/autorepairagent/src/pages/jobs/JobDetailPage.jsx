@@ -3,15 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Card, CardContent, Grid, Typography, Button, CircularProgress, Alert,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  List, ListItem, Chip, LinearProgress
+  List, ListItem, Chip, LinearProgress, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
-import { PlayArrow, CheckCircle, ArrowBack, Psychology, Edit, Delete } from '@mui/icons-material';
+import { PlayArrow, CheckCircle, ArrowBack, Psychology, Edit, Delete, Pause, PlayCircle } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobService } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
 import JobEditDialog from '../../components/jobs/JobEditDialog';
-import { formatDateTime } from '../../utils/helpers';
+import { formatDateTime, formatMinutes, PAUSE_REASON_LABELS } from '../../utils/helpers';
 import { canEditJob, canDeleteJob, canAdvisorManageJob } from '../../utils/jobPermissions';
 import { isDepartmentRole } from '../../utils/helpers';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,24 +48,47 @@ export default function JobDetailPage() {
   const { role, user } = useAuth();
   const qc = useQueryClient();
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [comment, setComment] = useState('');
+  const [pauseReason, setPauseReason] = useState('TEA_BREAK');
 
   const { data: job, isLoading, error } = useQuery({
     queryKey: ['job', id],
     queryFn: () => jobService.getById(id).then(r => r.data.data),
   });
 
+  const invalidateJob = () => {
+    qc.invalidateQueries(['job', id]);
+    qc.invalidateQueries(['jobs']);
+  };
+
   const startMutation = useMutation({
     mutationFn: () => jobService.start(id),
-    onSuccess: () => { qc.invalidateQueries(['job', id]); toast.success('Job started!'); },
+    onSuccess: () => { invalidateJob(); toast.success('Job started!'); },
     onError: (e) => toast.error(e.response?.data?.message || 'Failed to start job'),
+  });
+
+  const pauseMutation = useMutation({
+    mutationFn: () => jobService.pause(id, { reason: pauseReason }),
+    onSuccess: () => {
+      invalidateJob();
+      toast.success('Job paused');
+      setPauseOpen(false);
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Failed to pause job'),
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: () => jobService.resume(id),
+    onSuccess: () => { invalidateJob(); toast.success('Job resumed'); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Failed to resume job'),
   });
 
   const completeMutation = useMutation({
     mutationFn: () => jobService.complete(id, { comments: comment }),
     onSuccess: () => {
-      qc.invalidateQueries(['job', id]);
+      invalidateJob();
       toast.success('Job completed!');
       setCompleteOpen(false);
       setComment('');
@@ -76,8 +99,7 @@ export default function JobDetailPage() {
   const updateMutation = useMutation({
     mutationFn: (data) => jobService.update(id, data),
     onSuccess: () => {
-      qc.invalidateQueries(['job', id]);
-      qc.invalidateQueries(['jobs']);
+      invalidateJob();
       toast.success('Job updated');
       setEditOpen(false);
     },
@@ -163,19 +185,97 @@ export default function JobDetailPage() {
               </Button>
             )}
             {canAct && job.status === 'IN_PROGRESS' && (
-              <Button
-                variant="contained"
-                startIcon={<CheckCircle />}
-                onClick={() => setCompleteOpen(true)}
-              >
-                Complete Job
-              </Button>
+              <>
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  startIcon={<Pause />}
+                  onClick={() => setPauseOpen(true)}
+                >
+                  Pause Job
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<CheckCircle />}
+                  onClick={() => setCompleteOpen(true)}
+                >
+                  Complete Job
+                </Button>
+              </>
+            )}
+            {canAct && job.status === 'PAUSED' && (
+              <>
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<PlayCircle />}
+                  onClick={() => resumeMutation.mutate()}
+                  disabled={resumeMutation.isPending}
+                >
+                  Resume Job
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<CheckCircle />}
+                  onClick={() => setCompleteOpen(true)}
+                >
+                  Complete Job
+                </Button>
+              </>
             )}
           </Box>
         }
       />
 
+      {job.status === 'PAUSED' && job.pauseReason && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Job is paused — {PAUSE_REASON_LABELS[job.pauseReason] || job.pauseReason}
+          {job.pausedAt && ` (since ${formatDateTime(job.pausedAt)})`}
+        </Alert>
+      )}
+
       <Grid container spacing={3}>
+        {job.status === 'COMPLETED' && (
+          <Grid item xs={12}>
+            <Card sx={{ bgcolor: 'success.50', border: '1px solid', borderColor: 'success.light' }}>
+              <CardContent>
+                <Typography variant="h6" fontFamily="Space Grotesk" fontWeight={600} gutterBottom>
+                  Job Summary
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={4}>
+                    <Typography variant="caption" color="text.secondary" display="block">Completed By</Typography>
+                    <Typography variant="body1" fontWeight={600}>
+                      {job.completedBy
+                        ? `${job.completedBy.firstName} ${job.completedBy.lastName}`
+                        : '—'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Typography variant="caption" color="text.secondary" display="block">Total Time Taken</Typography>
+                    <Typography variant="body1" fontWeight={600}>
+                      {formatMinutes(job.timeTakenMinutes)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Typography variant="caption" color="text.secondary" display="block">Completed At</Typography>
+                    <Typography variant="body1" fontWeight={600}>
+                      {formatDateTime(job.completedAt)}
+                    </Typography>
+                  </Grid>
+                  {(job.totalPausedMinutes > 0) && (
+                    <Grid item xs={12}>
+                      <Typography variant="caption" color="text.secondary">
+                        Total pause time excluded: {formatMinutes(job.totalPausedMinutes)}
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
@@ -192,7 +292,13 @@ export default function JobDetailPage() {
               <InfoRow label="Started" value={formatDateTime(job.startedAt)} />
               <InfoRow label="Completed" value={formatDateTime(job.completedAt)} />
               {job.timeTakenMinutes != null && (
-                <InfoRow label="Time Taken" value={`${job.timeTakenMinutes} minutes`} />
+                <InfoRow label="Time Taken" value={formatMinutes(job.timeTakenMinutes)} />
+              )}
+              {job.completedBy && (
+                <InfoRow
+                  label="Completed By"
+                  value={`${job.completedBy.firstName} ${job.completedBy.lastName}`}
+                />
               )}
             </CardContent>
           </Card>
@@ -217,6 +323,45 @@ export default function JobDetailPage() {
             </CardContent>
           </Card>
         </Grid>
+
+        {job.pauses?.length > 0 && (
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" fontFamily="Space Grotesk" fontWeight={600} gutterBottom>
+                  Pause History
+                </Typography>
+                <List dense>
+                  {job.pauses.map((p) => (
+                    <ListItem key={p.id} sx={{ px: 0, alignItems: 'flex-start' }}>
+                      <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 2, width: '100%' }}>
+                        <Box sx={{ display: 'flex', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
+                          <Chip
+                            label={PAUSE_REASON_LABELS[p.reason] || p.reason}
+                            size="small"
+                            variant="outlined"
+                          />
+                          {p.durationMinutes != null && (
+                            <Chip label={formatMinutes(p.durationMinutes)} size="small" />
+                          )}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {formatDateTime(p.pausedAt)}
+                          {p.resumedAt ? ` → ${formatDateTime(p.resumedAt)}` : ' (active)'}
+                        </Typography>
+                        {p.user && (
+                          <Typography variant="caption" color="text.secondary">
+                            by {p.user.firstName} {p.user.lastName}
+                          </Typography>
+                        )}
+                      </Box>
+                    </ListItem>
+                  ))}
+                </List>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
 
         {(job.aiAnalysisLog || job.aiExplanation || job.confidence != null) && (
           <Grid item xs={12} md={6}>
@@ -287,6 +432,38 @@ export default function JobDetailPage() {
         </Grid>
       </Grid>
 
+      <Dialog open={pauseOpen} onClose={() => setPauseOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle fontFamily="Space Grotesk">Pause Job</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Select a reason for pausing this job. Pause time will not count toward total job time.
+          </Typography>
+          <FormControl fullWidth size="small">
+            <InputLabel>Pause Reason</InputLabel>
+            <Select
+              value={pauseReason}
+              onChange={e => setPauseReason(e.target.value)}
+              label="Pause Reason"
+            >
+              {Object.entries(PAUSE_REASON_LABELS).map(([key, label]) => (
+                <MenuItem key={key} value={key}>{label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setPauseOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            disabled={pauseMutation.isPending}
+            onClick={() => pauseMutation.mutate()}
+          >
+            {pauseMutation.isPending ? <CircularProgress size={18} /> : 'Pause Job'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={completeOpen} onClose={() => setCompleteOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle fontFamily="Space Grotesk">Complete Job</DialogTitle>
         <DialogContent>
@@ -298,6 +475,11 @@ export default function JobDetailPage() {
               <Typography variant="body2">
                 Started: {formatDateTime(job.startedAt)}
               </Typography>
+              {job.totalPausedMinutes > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  Paused time: {formatMinutes(job.totalPausedMinutes)}
+                </Typography>
+              )}
             </Box>
           )}
           <TextField
@@ -314,7 +496,7 @@ export default function JobDetailPage() {
           <Button
             variant="contained"
             color="success"
-            disabled={completeMutation.isPending}
+            disabled={completeMutation.isPending || !comment.trim()}
             onClick={() => completeMutation.mutate()}
           >
             {completeMutation.isPending ? <CircularProgress size={18} /> : 'Mark Complete'}
